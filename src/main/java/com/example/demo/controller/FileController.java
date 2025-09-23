@@ -10,8 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -21,42 +19,13 @@ public class FileController {
     private FileService fileService;
 
 
-
     @PostMapping("/upload")
     public ResponseEntity<FileModel> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
-            if (file.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
-            }
-
-            // Puedes validar si el archivo es de un tipo permitido (opcional)
-            String fileType = file.getContentType();
-            List<String> allowedTypes = Arrays.asList("application/pdf", "application/msword",
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    "application/vnd.ms-excel",
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    "image/jpeg", "image/png");
-
-            if (!allowedTypes.contains(fileType)) {
-                return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(null);
-            }
-
-            // Crea un modelo para almacenar el archivo
-            FileModel fileModel = new FileModel();
-            fileModel.setName(file.getOriginalFilename());
-            fileModel.setType(fileType);
-            fileModel.setData(file.getBytes());
-
-            // Guarda el archivo en la base de datos
-            FileModel savedFile = fileService.saveFile(fileModel);
-
+            FileModel savedFile = fileService.saveFile(file);
             return ResponseEntity.status(HttpStatus.CREATED).body(savedFile);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
     @GetMapping("/listar")
@@ -101,16 +70,17 @@ public class FileController {
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteFile(@PathVariable Long id) {
         try {
-            FileModel existingFile = fileService.getFileById(id);
-            if (existingFile == null) {
+            boolean deleted = fileService.deleteFileById(id);
+
+            if (!deleted) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
 
-            fileService.deleteFileById(id);
-            return ResponseEntity.noContent().build();  // Devuelve 204 No Content en caso de éxito
+            return ResponseEntity.noContent().build(); // 204 No Content
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
 }
