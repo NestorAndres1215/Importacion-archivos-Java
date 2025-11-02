@@ -1,70 +1,38 @@
 package com.example.demo.model;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Lob;
-import javax.persistence.Table;
+import com.example.demo.util.MensajesValidacion;
+import lombok.*;
 
+import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 
 @Entity
 @Table(name = "file_model")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class FileModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // Cambiado a Long
+    private Long id;
 
+    @Column(nullable = false, length = 255)
+    @NotBlank(message = MensajesValidacion.FILE_NAME_REQUERIDO)
     private String name;
+
+    @Column(nullable = false, length = 150)
+    @NotBlank(message = MensajesValidacion.FILE_TYPE_REQUERIDO)
     private String type;
 
-    @Lob // Esta anotación indica que es un objeto grande
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    @NotNull(message = MensajesValidacion.FILE_DATA_REQUERIDO)
     private byte[] data;
-
-    public FileModel(Long id, String name, String type, byte[] data) {
-        this.id = id;
-        this.name = name;
-        this.type = type;
-        this.data = data;
-    }
-
-    public FileModel() {
-    }
-
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public byte[] getData() {
-        return data;
-    }
-
-    public void setData(byte[] data) {
-        this.data = data;
-    }
 
 
 }

@@ -1,21 +1,26 @@
 package com.example.demo.service;
 
+import com.example.demo.exception.FileEmptyException;
+import com.example.demo.exception.FileTypeNotAllowedException;
 import com.example.demo.model.FileModel;
 import com.example.demo.repository.FileRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.demo.util.MensajesValidacion;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.transaction.Transactional;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class FileServiceImpl implements FileService {
-    @Autowired
-    private FileRepository fileRepository;
+
+
+    private final FileRepository fileRepository;
 
     private static final List<String> ALLOWED_TYPES = Arrays.asList(
             "application/pdf",
@@ -27,55 +32,47 @@ public class FileServiceImpl implements FileService {
             "image/png"
     );
 
-
     @Override
     @Transactional
     public FileModel saveFile(MultipartFile file) throws IOException {
-        // 1. Validar archivo vacío
+
         if (file.isEmpty()) {
-            throw new IllegalArgumentException("El archivo está vacío");
+            throw new FileEmptyException(MensajesValidacion.ERROR_ARCHIVO_VACIO);
         }
 
-        // 2. Validar tipo permitido
         String fileType = file.getContentType();
         if (!ALLOWED_TYPES.contains(fileType)) {
-            throw new UnsupportedOperationException("Tipo de archivo no soportado: " + fileType);
+            throw new FileTypeNotAllowedException(MensajesValidacion.ERROR_TIPO_NO_SOPORTADO + fileType);
         }
 
-        // 3. Convertir MultipartFile a FileModel
-        FileModel fileModel = new FileModel();
-        fileModel.setName(file.getOriginalFilename());
-        fileModel.setType(fileType);
-        fileModel.setData(file.getBytes());
+        FileModel fileModel = FileModel.builder()
+                .name(file.getOriginalFilename())
+                .type(fileType)
+                .data(file.getBytes())
+                .build();
 
-        // 4. Guardar en BD
         return fileRepository.save(fileModel);
     }
 
-
     @Override
     public FileModel getFileById(Long id) {
-        // Utiliza el repositorio para buscar el archivo por su ID
-        Optional<FileModel> optionalFileModel = fileRepository.findById(id);
-        return optionalFileModel.orElse(null); // Devuelve el archivo o null si no existe
+        return fileRepository.findById(id)
+                .orElseThrow(() -> new FileNotFoundException(MensajesValidacion.ERROR_ARCHIVO_NO_ENCONTRADO + id));
     }
 
     @Override
     public List<FileModel> getAllFiles() {
-        return fileRepository.findAll();  // Recupera todos los archivos
+        return fileRepository.findAll();
     }
 
     @Override
-    public boolean deleteFileById(Long id) {
-        Optional<FileModel> existingFile = fileRepository.findById(id);
-
-        if (existingFile.isPresent()) {
-            fileRepository.deleteById(id);
-            return true; // Eliminado correctamente
+    @Transactional
+    public void deleteFileById(Long id) throws FileNotFoundException {
+        if (!fileRepository.existsById(id)) {
+            throw new FileNotFoundException(MensajesValidacion.ERROR_ARCHIVO_NO_ENCONTRADO + id);
         }
 
-        return false; // No existe el archivo
+        fileRepository.deleteById(id);
     }
-
 
 }
